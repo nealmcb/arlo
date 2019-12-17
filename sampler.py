@@ -8,12 +8,13 @@ import operator
 from audits.audit import RiskLimitingAudit
 from audits.bravo import BRAVO
 from audits.macro import MACRO
+from audits.ssimple import SuperSimple
 
 class Sampler:
 
     audit: RiskLimitingAudit
 
-    def __init__(self, audit_type, seed, risk_limit, contests, batch_results=None):
+    def __init__(self, audit_type, seed, risk_limit, contests, batch_results=None, cvrs=None):
         """
         Initializes PRNG, computes margins, and returns initial sample
         sizes parameterized by likelihood that the initial sample will confirm the
@@ -57,6 +58,7 @@ class Sampler:
         self.prng = SHA256(seed)
         self.contests = contests
         self.batch_results = batch_results
+        self.cvrs = cvrs
         self.margins = self.compute_margins()
         self.audit_type = audit_type
 
@@ -65,6 +67,9 @@ class Sampler:
         elif audit_type == 'MACRO':
             assert self.batch_results, 'Must have batch-level results to use MACRO'
             self.audit = MACRO(risk_limit)
+        elif audit_type == 'SuperSimple':
+            assert self.cvrs, 'Must have cast-vote records to use SuperSimple'
+            self.audit = SuperSimple(risk_limit)
 
     def compute_margins(self):
         """
