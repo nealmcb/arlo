@@ -8,7 +8,7 @@ import operator
 from audits.audit import RiskLimitingAudit
 from audits.bravo import BRAVO
 from audits.macro import MACRO
-from audits.ssimple import SuperSimple
+from audits.supersimple import SuperSimple
 
 class Sampler:
 
@@ -276,6 +276,12 @@ class Sampler:
         if type(self.audit) == MACRO:
             return self.audit.get_sample_sizes(contests=self.contests, 
                                            margins=self.margins, 
+                                           reported_results=self.batch_results,
+                                           sample_results=sample_results)
+        elif type(self.audit) == SuperSimple:
+            return self.audit.get_sample_sizes(contests=self.contests, 
+                                           margins=self.margins, 
+                                           total_ballots=len(self.cvrs),
                                            reported_results=self.batch_results,
                                            sample_results=sample_results)
         else:
