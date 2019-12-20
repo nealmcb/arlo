@@ -131,6 +131,12 @@ def test_macro_error():
         
         assert 'Must have batch-level results to use MACRO' in e.value
 
+def test_supersimple_error():
+    with pytest.raises(Exception) as e:
+        Sampler('SuperSimple', 0, 0, {})
+        
+        assert 'Must have cast-vote records to use SuperSimple' in e.value
+
 def test_draw_sample(bravo_sampler):
     # Test getting a sample
     manifest = {
