@@ -23,9 +23,10 @@ class RiskLimitingAudit(abc.ABC):
                              contain its results. 
 
         Outputs:
-            samples - dictionary mapping confirmation likelihood to sample size:
+            samples - dictionary mapping confirmation likelihood to sample size, plus ASN info:
                     {
                        contest1:  { 
+                            'asn': {'size': asn, 'prob': stopping_probability},
                             likelihood1: sample_size,
                             likelihood2: sample_size,
                             ...

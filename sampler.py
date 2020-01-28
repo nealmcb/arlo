@@ -7,6 +7,7 @@ import consistent_sampler
 import operator
 from audits.audit import RiskLimitingAudit
 from audits.bravo import BRAVO
+from audits.aurror import Aurror
 from audits.macro import MACRO
 
 class Sampler:
@@ -62,9 +63,13 @@ class Sampler:
 
         if audit_type == 'BRAVO':
             self.audit = BRAVO(risk_limit)
+        elif audit_type == 'Aurror':
+            self.audit = Aurror(risk_limit)
         elif audit_type == 'MACRO':
             assert self.batch_results, 'Must have batch-level results to use MACRO'
             self.audit = MACRO(risk_limit)
+        else:
+            assert False, 'Invalid audit_type: "%s"' % audit_type
 
     def compute_margins(self):
         """

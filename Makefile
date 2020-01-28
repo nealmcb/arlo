@@ -37,3 +37,6 @@ test-client:
 
 test-server:
 	FLASK_ENV=test pipenv run python -m pytest --ignore=arlo-client
+
+test-athena:
+	FLASK_ENV=test pipenv run python -m pytest tests/test_aurror.py

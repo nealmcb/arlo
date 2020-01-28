@@ -1,9 +1,15 @@
+arlo.db
+
 *.pyc
 *.DS_Store
 node_modules
 .mypy_cache
 .pytest_cache
 config/database.cfg
+.ipynb_checkpoints
+.cache
+.python-version
+package-lock.json
 
 # vim temp files
 *~
