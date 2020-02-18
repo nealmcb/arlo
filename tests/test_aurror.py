@@ -262,7 +262,7 @@ def test_aurror_expected_prob(sampler):
     assert not delta, 'aurror_simulator failed: got {}, expected {}'.format(computed_prob1, expected_prob1)
 
 
-@pytest.mark.skip(reason="results not calculated yet")
+#@pytest.mark.skip(reason="results not calculated yet")
 def test_aurror_sample_sizes(sampler):
     # Test retrieving menu of sample sizes
     computed_samples = sampler.get_sample_sizes(round0_sample_results)
@@ -694,16 +694,16 @@ true_sample_sizes = {
             'size': 60,
             'prob': .52
         },
-        .7: 184,
-        .8: 244,
-        .9: 351,
+        .7: 112,
+        .8: 132,
+        .9: 182,
     }, 
     'test2': {
         'asn': {
-            'size':22,
-            'prob': .6
+            'size': 11,
+            'prob': .52
         },
-        .7: 32,
+        .7: 420,
         .8: 41,
         .9: 57,
     },

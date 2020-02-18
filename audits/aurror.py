@@ -10,55 +10,7 @@ import math
 from scipy.stats import binom
 from audits.audit import RiskLimitingAudit
 
-
-# For now, use the following two functions from https://github.com/filipzz/aurror/blob/master/code/aurror.py
-# TODO: Replace with more general Athena module.
-
-
-def next_round_prob(margin, round_size_prev, round_size, kmin, prob_table_prev):
-    "Returns the probability distribution of being at a given risk level at the end of a given round."
-    prob_table = [0] * (round_size + 1)
-    for i in range(kmin + 1):
-        for j in range(round_size + 1):
-            prob_table[j] = prob_table[j] + binom.pmf(j-i, round_size - round_size_prev, (1+margin)/2) * prob_table_prev[i]
-
-    return prob_table
-
-
-def aurror(margin, alpha, round_schedule):
-    round_schedule = [0] + round_schedule
-    number_of_rounds = len(round_schedule)
-    prob_table_prev = [1]
-    prob_tied_table_prev = [1]
-    kmins = [0] * number_of_rounds
-    prob_sum = [0] * number_of_rounds
-    prob_tied_sum = [0] * number_of_rounds
-
-    for round in range(1,number_of_rounds):
-        prob_table = next_round_prob(margin, round_schedule[round - 1], round_schedule[round], kmins[round - 1], prob_table_prev)
-        prob_tied_table = next_round_prob(0, round_schedule[round - 1], round_schedule[round], kmins[round - 1], prob_tied_table_prev)
-
-        kmin_found = False
-        kmin_candidate = math.floor(round_schedule[round]/2)
-        while kmin_found == False and kmin_candidate <= round_schedule[round]:
-            if alpha * (sum(prob_table[kmin_candidate:len(prob_table)]) + prob_sum[round - 1]) >= (sum(prob_tied_table[kmin_candidate:len(prob_tied_table)]) + prob_tied_sum[round - 1]):
-                kmin_found = True
-                kmins[round] = kmin_candidate
-                prob_sum[round] = sum(prob_table[kmin_candidate:len(prob_table)]) + prob_sum[round - 1]
-                prob_tied_sum[round] = sum(prob_tied_table[kmin_candidate:len(prob_tied_table)]) + prob_tied_sum[round - 1]
-            else:
-                kmin_candidate = kmin_candidate + 1
-
-        # cleaning prob_table/prob_tied_table
-        for i in range(kmin_candidate, round_schedule[round] + 1):
-            prob_table[i] = 0
-            prob_tied_table[i] = 0
-
-        prob_table_prev = prob_table
-        prob_tied_table_prev = prob_tied_table
-
-    return {"kmins" : kmins[1:len(kmins)], "prob_sum" : prob_sum[1:len(prob_sum)], "prob_tied_sum" : prob_tied_sum[1:len(prob_tied_sum)]}
-
+from audits.athena import aurror as athena
 
 # This class is currently based on functions from bravo.py, with new Athena / Aurror code being incorporated
 
@@ -156,9 +108,7 @@ class Aurror(RiskLimitingAudit):
                     }
         """
 
-        quants = [.7, .8, .9]  # FIXME - still needed for error reports
-        # For now, use multiples of expected size
-        multiples = [1.2, 1.6, 2.1]
+        quants = [.7, .8, .9]
 
         samples = {}
 
@@ -230,18 +180,24 @@ class Aurror(RiskLimitingAudit):
             sample_w = sample_results[contest][worse_winner]
             sample_l = sample_results[contest][best_loser]
 
-            closest_margin = .1 # FIXME
+            closest_margin = p_w - p_l
             samples[contest]['asn'] = {
                 'size': asns[contest],
                 'prob': .52 # FIXME for Aurror.  self.expected_prob(p_w, p_l, sample_w, sample_l, asns[contest])
                 }
 
-            for multiple in multiples:
-                sample_size = math.ceil(multiple * asns[contest])
-                rounds = [sample_size]
-                plan = aurror(closest_margin, self.risk_limit, rounds)
-                prob = round(plan['prob_sum'][0], 2)
-                samples[contest][prob] = sample_size
+            athena_audit = athena.AurrorAudit()
+
+            for quant in quants:
+                #sample_size = math.ceil(multiple * asns[contest])
+                #rounds = [sample_size]
+                ## plan = aurror.aurror(closest_margin, self.risk_limit, rounds)
+                # prob = round(plan['prob_sum'][0], 2)
+                samples[contest][quant] = athena_audit.find_next_round_size(closest_margin, self.risk_limit, [], quant, 10)['size']
+                print(f"quant: {samples[contest][quant]}")
+                # import pdb; pdb.set_trace()
+                # FIXME: where does 10 come from (besides current find_next_round_sizes()...)
+                # samples[contest][prob] = sample_size
                 # FIXME: feed in actual samples self.aurror_sample_sizes(p_w, p_l, sample_w, sample_l, quant)
 
         return samples

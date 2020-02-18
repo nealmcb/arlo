@@ -21,7 +21,7 @@ class Sampler:
         election result, assuming no discrpancies.
 
         Inputs:
-            seed - seed used to initialized random functions
+            seed: seed used to initialized random functions
             risk_limit - the risk-limit to compute sample sizes from
             contests - dictionary of targeted contests. Maps:
                         {
