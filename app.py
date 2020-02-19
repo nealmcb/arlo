@@ -68,7 +68,7 @@ def sample_results(election):
 
 def get_sampler(election):
     # TODO Change this to audit_type
-    return Sampler('BRAVO', election.random_seed, election.risk_limit / 100, contest_status(election))
+    return Sampler('Athena', election.random_seed, election.risk_limit / 100, contest_status(election))
 
 def compute_sample_sizes(round_contest):
     the_round = round_contest.round

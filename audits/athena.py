@@ -17,19 +17,19 @@ class Athena(RiskLimitingAudit):
         super().__init__(risk_limit)
 
 
-    # Based on BRAVO code for now.
     def get_expected_sample_sizes(self, margins, contests, sample_results):
         """
-        Returns the expected sample size for a Athena audit of each contest in contests.
-        For now, estimate by calculating BRAVO's ASN and multiplying by ATHENA_RATIO
+        Returns the expected sample size for an Athena audit of each contest in contests.
+        FIXME: Based on BRAVO code for now.  Ignore until we have proper native calculations.
+        For now, broken estimate via calculating BRAVO's ASN and multiplying by ATHENA_RATIO
 
         Input:
-            margins - a dict of the margins for each contest passed from Sampler
-            contests - a dict of the contests passed in from Sampler
-            sample_results - a dict of the sample results from the Sampler
+            margins: a dict of the margins for each contest passed from Sampler
+            contests: a dict of the contests passed in from Sampler
+            sample_results: a dict of the sample results from the Sampler
 
         Output:
-            expected sample sizes - dict of computed expected sample size for each contest:
+            expected sample sizes: dict of computed expected sample size for each contest:
                 {
                     contest1: asn1,
                     contest3: asn2,
@@ -87,14 +87,14 @@ class Athena(RiskLimitingAudit):
         """
         Computes initial sample sizes parameterized by likelihood that the
         initial sample will confirm the election result, assuming no
-        discrpancies.
+        discrepancies.
 
         Inputs:
-            sample_results - if a sample has already been drawn, this will
+            sample_results: if a sample has already been drawn, this will
                              contain its results. 
 
         Outputs:
-            samples - dictionary mapping confirmation likelihood to sample size, plus ASN info:
+            samples: dictionary mapping confirmation likelihood to sample size, plus ASN info:
                     {
                        contest1:  {
                             'asn': {'size': asn, 'prob': stopping_probability},
@@ -133,6 +133,7 @@ class Athena(RiskLimitingAudit):
                 return samples  # FIXME: doesn't complete loop over contests
 
             margin = margins[contest]
+            # FIXME: simplify ala:  val, idx = min((val, idx) for (idx, val) in enumerate(my_list))
             # Get smallest p_w - p_l
             for winner in margin['winners']:
                 if margin['winners'][winner]['p_w'] < p_w:
@@ -191,7 +192,9 @@ class Athena(RiskLimitingAudit):
                 #rounds = [sample_size]
                 ## plan = athena.athena(closest_margin, self.risk_limit, rounds)
                 # prob = round(plan['prob_sum'][0], 2)
-                samples[contest][quant] = athena_audit.find_next_round_size(closest_margin, self.risk_limit, [], quant, 10)['size']
+
+
+                samples[contest][quant] = athena_audit.find_next_round_size("ATHENA", closest_margin, self.risk_limit, 1.0, [], quant, 100, num_ballots)['size']
                 print(f"quant: {samples[contest][quant]}")
                 # import pdb; pdb.set_trace()
                 # FIXME: where does 10 come from (besides current find_next_round_sizes()...)
@@ -206,8 +209,8 @@ class Athena(RiskLimitingAudit):
         Computes T*, the test statistic from an existing sample. 
 
         Inputs: 
-            margins        - the margins for the contest being audited
-            sample_results - mapping of candidates to votes in the (cumulative)
+            margins: the margins for the contest being audited
+            sample_results: mapping of candidates to votes in the (cumulative)
                              sample:
 
                     {
@@ -217,7 +220,7 @@ class Athena(RiskLimitingAudit):
                     }
 
         Outputs:
-            T - Mapping of (winner, loser) pairs to their test statistic based
+            T: Mapping of (winner, loser) pairs to their test statistic based
                 on sample_results
         """
 
@@ -252,8 +255,8 @@ class Athena(RiskLimitingAudit):
         Computes the risk-value of <sample_results> based on results in <contest>.
 
         Inputs: 
-            margins        - the margins for the contest being audited
-            sample_results - mapping of candidates to votes in the (cumulative)
+            margins: the margins for the contest being audited
+            sample_results: mapping of candidates to votes in the (cumulative)
                              sample:
 
                     {
@@ -263,9 +266,9 @@ class Athena(RiskLimitingAudit):
                     }
 
         Outputs:
-            measurements    - the p-value of the hypotheses that the election
+            measurements: the p-value of the hypotheses that the election
                               result is correct based on the sample, for each winner-loser pair. 
-            confirmed       - a boolean indicating whether the audit can stop
+            confirmed: a boolean indicating whether the audit can stop
         """
 
         T = self.get_test_statistics(margins, sample_results)
