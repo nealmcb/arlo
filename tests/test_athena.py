@@ -1,5 +1,5 @@
 """
-Tests for Athena (nee Aurror) calculations.
+Tests for Athena calculations.
 
 WIP!  Don't trust the numbers in here yet.
 
@@ -104,7 +104,7 @@ def sampler():
         },
     }
 
-    yield Sampler('Aurror', seed, risk_limit, contests)
+    yield Sampler('Athena', seed, risk_limit, contests)
 
 def test_expected_sample_sizes(sampler):
     # Test expected sample sizes computation
@@ -156,14 +156,14 @@ def test_expected_sample_sizes_second_round(sampler):
         assert expected == computed, 'get_expected_sample_sizes failed in {}: got {}, expected {}'.format(contest, computed, expected)
 
 @pytest.mark.skip(reason="results not calculated yet")
-def test_aurror_sample_sizes(sampler):
-    # Test aurror sample simulator
+def test_athena_sample_sizes(sampler):
+    # Test athena sample simulator
     # Test without sample
     expected_size1 = 1599
     r0_sample_win = 0    
     r0_sample_rup = 0
 
-    computed_size1 = math.ceil(sampler.audit.aurror_sample_sizes(
+    computed_size1 = math.ceil(sampler.audit.athena_sample_sizes(
                                     p_w=.4, 
                                     p_r=.32,
                                     sample_w=r0_sample_win, 
@@ -171,11 +171,11 @@ def test_aurror_sample_sizes(sampler):
                                     p_completion=.9))
     delta = expected_size1 - computed_size1
 
-    assert not delta, 'aurror_sample_sizes failed: got {}, expected {}'.format(computed_size1, expected_size1)
+    assert not delta, 'athena_sample_sizes failed: got {}, expected {}'.format(computed_size1, expected_size1)
     
     expected_size1 = 6067
 
-    computed_size1 = math.ceil(sampler.audit.aurror_sample_sizes(
+    computed_size1 = math.ceil(sampler.audit.athena_sample_sizes(
                                     p_w=.36, 
                                     p_r=.32,
                                     sample_w=r0_sample_win, 
@@ -183,11 +183,11 @@ def test_aurror_sample_sizes(sampler):
                                     p_completion=.9))
     delta = expected_size1 - computed_size1
 
-    assert not delta, 'aurror_sample_sizes failed: got {}, expected {}'.format(computed_size1, expected_size1)
+    assert not delta, 'athena_sample_sizes failed: got {}, expected {}'.format(computed_size1, expected_size1)
 
     expected_size1 = 2475
 
-    computed_size1 = math.ceil(sampler.audit.aurror_sample_sizes(
+    computed_size1 = math.ceil(sampler.audit.athena_sample_sizes(
                                     p_w=.36, 
                                     p_r=.32,
                                     sample_w=r0_sample_win, 
@@ -195,11 +195,11 @@ def test_aurror_sample_sizes(sampler):
                                     p_completion=.6))
     delta = expected_size1 - computed_size1
 
-    assert not delta, 'aurror_sample_sizes failed: got {}, expected {}'.format(computed_size1, expected_size1)
+    assert not delta, 'athena_sample_sizes failed: got {}, expected {}'.format(computed_size1, expected_size1)
 
     expected_size1 = 5657
 
-    computed_size1 = math.ceil(sampler.audit.aurror_sample_sizes(
+    computed_size1 = math.ceil(sampler.audit.athena_sample_sizes(
                                     p_w=.52, 
                                     p_r=.47,
                                     sample_w=r0_sample_win, 
@@ -207,16 +207,16 @@ def test_aurror_sample_sizes(sampler):
                                     p_completion=.9))
     delta = expected_size1 - computed_size1
 
-    assert not delta, 'aurror_sample_sizes failed: got {}, expected {}'.format(computed_size1, expected_size1)
+    assert not delta, 'athena_sample_sizes failed: got {}, expected {}'.format(computed_size1, expected_size1)
 
 @pytest.mark.skip(reason="results not calculated yet")
-def test_aurror_sample_sizes_round1_finish(sampler):
+def test_athena_sample_sizes_round1_finish(sampler):
     # Guarantee that the audit should have finished
     r0_sample_win = 10000
     r0_sample_rup = 0
     expected_size1 = 0
 
-    computed_size1 = math.ceil(sampler.audit.aurror_sample_sizes(
+    computed_size1 = math.ceil(sampler.audit.athena_sample_sizes(
                                     p_w=.52, 
                                     p_r=.47,
                                     sample_w=r0_sample_win, 
@@ -224,15 +224,15 @@ def test_aurror_sample_sizes_round1_finish(sampler):
                                     p_completion=.9))
     delta = expected_size1 - computed_size1
 
-    assert not delta, 'aurror_sample_sizes failed: got {}, expected {}'.format(computed_size1, expected_size1)
+    assert not delta, 'athena_sample_sizes failed: got {}, expected {}'.format(computed_size1, expected_size1)
 
 @pytest.mark.skip(reason="results not calculated yet")
-def test_aurror_sample_sizes_round1_incomplete(sampler):
+def test_athena_sample_sizes_round1_incomplete(sampler):
     expected_size1 = 2636
     r0_sample_win = 2923
     r0_sample_rup = 2735
 
-    computed_size1 = math.ceil(sampler.audit.aurror_sample_sizes(
+    computed_size1 = math.ceil(sampler.audit.athena_sample_sizes(
                                     p_w=.52, 
                                     p_r=.47,
                                     sample_w=r0_sample_win, 
@@ -240,12 +240,12 @@ def test_aurror_sample_sizes_round1_incomplete(sampler):
                                     p_completion=.9))
     delta = expected_size1 - computed_size1
 
-    assert not delta, 'aurror_sample_sizes failed: got {}, expected {}'.format(computed_size1, expected_size1)
+    assert not delta, 'athena_sample_sizes failed: got {}, expected {}'.format(computed_size1, expected_size1)
 
 
 @pytest.mark.skip(reason="results not calculated yet")
-def test_aurror_expected_prob(sampler):
-    # Test aurror sample simulator
+def test_athena_expected_prob(sampler):
+    # Test athena sample simulator
     # Test without sample
     expected_prob1 = .52
     r0_sample_win = round0_sample_results['test1']['cand1']
@@ -259,11 +259,11 @@ def test_aurror_expected_prob(sampler):
                                     asn = 119), 2)
     delta = expected_prob1 - computed_prob1
 
-    assert not delta, 'aurror_simulator failed: got {}, expected {}'.format(computed_prob1, expected_prob1)
+    assert not delta, 'athena_simulator failed: got {}, expected {}'.format(computed_prob1, expected_prob1)
 
 
 #@pytest.mark.skip(reason="results not calculated yet")
-def test_aurror_sample_sizes(sampler):
+def test_athena_sample_sizes(sampler):
     # Test retrieving menu of sample sizes
     computed_samples = sampler.get_sample_sizes(round0_sample_results)
     print(computed_samples)

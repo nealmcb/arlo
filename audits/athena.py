@@ -2,19 +2,17 @@
 Athena election auditing calculations for Arlo.
 
 Based on work by Poorvi Vora, Filip Zagorski, Neal McBurnett, Sarah Morin and Grant McClearn.
-
-TODO: change name and API from aurror.py to athena.py here and in calling functions
 """
 
 import math
 from scipy.stats import binom
 from audits.audit import RiskLimitingAudit
 
-from audits.athena import aurror as athena
+from audits.r2b2 import athena
 
-# This class is currently based on functions from bravo.py, with new Athena / Aurror code being incorporated
+# This class is currently based on functions from bravo.py, with new Athena code being incorporated
 
-class Aurror(RiskLimitingAudit):
+class Athena(RiskLimitingAudit):
     def __init__(self, risk_limit):
         super().__init__(risk_limit)
 
@@ -22,8 +20,8 @@ class Aurror(RiskLimitingAudit):
     # Based on BRAVO code for now.
     def get_expected_sample_sizes(self, margins, contests, sample_results):
         """
-        Returns the expected sample size for a Aurror audit of each contest in contests.
-        For now, estimate by calculating BRAVO's ASN and multiplying by AURROR_RATIO
+        Returns the expected sample size for a Athena audit of each contest in contests.
+        For now, estimate by calculating BRAVO's ASN and multiplying by ATHENA_RATIO
 
         Input:
             margins - a dict of the margins for each contest passed from Sampler
@@ -39,8 +37,8 @@ class Aurror(RiskLimitingAudit):
                 }
         """
 
-        # Temporary estimate of Aurror estimate as ration of BRAVO ASN
-        AURROR_RATIO = 0.5
+        # Temporary estimate of Athena estimate as ration of BRAVO ASN
+        ATHENA_RATIO = 0.5
 
         asns = {}
         for contest in contests:
@@ -79,7 +77,7 @@ class Aurror(RiskLimitingAudit):
                 T = min(self.get_test_statistics(margins[contest], sample_results[contest]).values())
 
                 weighted_alpha = math.log((1.0/self.risk_limit)/T)  
-                asns[contest] = math.ceil((AURROR_RATIO * (weighted_alpha + (z_w / 2.0)) / (p_w*z_w + p_l*z_l)))
+                asns[contest] = math.ceil((ATHENA_RATIO * (weighted_alpha + (z_w / 2.0)) / (p_w*z_w + p_l*z_l)))
 
         return asns
 
@@ -183,22 +181,22 @@ class Aurror(RiskLimitingAudit):
             closest_margin = p_w - p_l
             samples[contest]['asn'] = {
                 'size': asns[contest],
-                'prob': .52 # FIXME for Aurror.  self.expected_prob(p_w, p_l, sample_w, sample_l, asns[contest])
+                'prob': .52 # FIXME for Athena.  self.expected_prob(p_w, p_l, sample_w, sample_l, asns[contest])
                 }
 
-            athena_audit = athena.AurrorAudit()
+            athena_audit = athena.AthenaAudit()
 
             for quant in quants:
                 #sample_size = math.ceil(multiple * asns[contest])
                 #rounds = [sample_size]
-                ## plan = aurror.aurror(closest_margin, self.risk_limit, rounds)
+                ## plan = athena.athena(closest_margin, self.risk_limit, rounds)
                 # prob = round(plan['prob_sum'][0], 2)
                 samples[contest][quant] = athena_audit.find_next_round_size(closest_margin, self.risk_limit, [], quant, 10)['size']
                 print(f"quant: {samples[contest][quant]}")
                 # import pdb; pdb.set_trace()
                 # FIXME: where does 10 come from (besides current find_next_round_sizes()...)
                 # samples[contest][prob] = sample_size
-                # FIXME: feed in actual samples self.aurror_sample_sizes(p_w, p_l, sample_w, sample_l, quant)
+                # FIXME: feed in actual samples self.athena_sample_sizes(p_w, p_l, sample_w, sample_l, quant)
 
         return samples
 
