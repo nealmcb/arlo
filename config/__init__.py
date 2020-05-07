@@ -1,6 +1,7 @@
 import configparser
 import os
 import sys
+import logging
 
 from typing import Dict, Tuple
 
@@ -32,6 +33,30 @@ def setup_flask_config() -> Tuple[str, bool]:
 
 
 FLASK_ENV, FLASK_DEBUG = setup_flask_config()
+
+
+def setup_logging():
+    "Use $ARLO_LOGLEVEL (an integer) if given, otherwise a default based on FLASK_ENV"
+
+    arlo_loglevel = os.environ.get("ARLO_LOGLEVEL", None)
+
+    if arlo_loglevel is None:
+        loglevel = logging.DEBUG if FLASK_ENV == "development" else logging.WARNING
+    else:
+        loglevel = int(arlo_loglevel)
+
+    return loglevel
+
+LOGLEVEL = setup_logging()
+logging.basicConfig(level=LOGLEVEL)
+logging.warning(f'Arlo running at loglevel {LOGLEVEL}')
+
+
+def setup_audit_math():
+    return os.environ.get("ARLO_ALGORITHM", "athena")
+
+ALGORITHM = setup_audit_math()
+logging.warning(f'Arlo using auditing algorithm {ALGORITHM}')
 
 
 DEFAULT_DATABASE_URL = "postgres://postgres@localhost:5432/arlo"
