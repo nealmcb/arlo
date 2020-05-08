@@ -12,7 +12,8 @@ from scipy import stats
 from typing import Dict, Tuple, Union, Optional
 
 from .sampler_contest import Contest
-from .athena.audit import Audit
+from .athena.shim import athena_sample_sizes
+
 from config import ALGORITHM
 
 def get_expected_sample_sizes(
@@ -409,77 +410,6 @@ def compute_risk(
     return measurements, finished
 
 
-# TODO: Is is worth keeping Audit objects cached? Or do we really need to make them up for each pairwise as we go?
-
-def athena_sample_sizes(
-        risk_limit: float,
-        p_w: float,
-        p_r: float,
-        sample_w: int,
-        sample_r: int,
-        p_completion: float,
-) -> int:
-    """
-    Return Athena round size based on completion probability, assuming the election outcome is correct.
-    TODO: refactor to pass in integer vote shares to allow more exact calculations, incorporate or
-    track round schedule over time, and handle sampling without replacement.
-
-    Inputs:
-        risk_limit      - the risk-limit for this audit
-        p_w             - the fraction of vote share for the winner
-        p_r             - the fraction of vote share for the loser
-        sample_w        - the number of votes for the winner that have already
-                          been sampled
-        sample_r        - the number of votes for the runner-up that have
-                          already been sampled
-        p_completion    - the desired chance of completion in one round,
-                          if the outcome is correct
-
-    Outputs:
-        sample_size     - the expected sample size for the given chance
-                          of completion in one round
-
-    TODO: Why does this return 248, but athena.py -i returns 244?
-    >>> athena_sample_sizes(0.1, 0.6, 0.4, 56, 56, 0.7)
-    248
-    """
-
-    # calculate the undiluted "two-way" share of votes for the winner
-    p_wr = p_w + p_r
-    p_w2 = p_w / p_wr
-    # p_r2 = 1 - p_w2
-
-    ballots_cast = 100000
-    a = int(ballots_cast * p_w2)
-    b = ballots_cast - a
-    pstop_goal = [p_completion]
-    round_size = sample_w + sample_r
-
-    election = {
-        "alpha": risk_limit,
-        "delta": 1.0,
-        "candidates": ["A", "B"],
-        "results": [a, b],
-        "ballots_cast": ballots_cast,
-        "winners": 1,
-        "name": 'pure_pair',
-        "model": 'bin',
-        "pstop_goal": pstop_goal,
-    }
-
-    a = Audit("athena", election['alpha'], election['delta'])
-    a.add_election(election)
-    a.add_round_schedule([round_size])
-    r = a.find_risk([sample_w])
-    below_kmin = max(r['required']) - max(r['observed'])
-    x = a.find_next_round_size(pstop_goal)
-    next_round_size_0 = x['future_round_sizes'][0]
-
-    next_round_size = next_round_size_0 + 2 * below_kmin
-
-    logging.debug(f'(pw {p_w} pr {p_r}) (sw {sample_w} sr {sample_w}) pstop {p_completion} below_kmin {below_kmin} ss {next_round_size}')
-    return next_round_size
-
-# Quick-and-dirty way to switch between auditing algorithms
+# Quick-and-dirty way to switch between auditing algorithms: override the function
 if ALGORITHM == "athena":
     bravo_sample_sizes = athena_sample_sizes

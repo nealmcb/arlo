@@ -49,6 +49,7 @@ def setup_logging():
 
 LOGLEVEL = setup_logging()
 logging.basicConfig(level=LOGLEVEL)
+logging.debug('Test debug log')
 logging.warning(f'Arlo running at loglevel {LOGLEVEL}')
 
 
