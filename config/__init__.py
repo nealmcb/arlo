@@ -47,17 +47,30 @@ def setup_logging():
 
     return loglevel
 
+
 LOGLEVEL = setup_logging()
-logging.basicConfig(level=LOGLEVEL)
-logging.debug('Test debug log')
-logging.warning(f'Arlo running at loglevel {LOGLEVEL}')
+logging.basicConfig(
+    format="%(asctime)s:%(name)s:%(levelname)s:%(message)s", level=LOGLEVEL
+)
+logging.debug("Test debug log")
+logging.warning(f"Arlo running at loglevel {LOGLEVEL}")
+
+
+def filter_athena_messages(record):
+    "Filter out any logging messages from athena/audit.py, in preference to our tighter logging"
+
+    return not record.pathname.endswith("athena/audit.py")
+
+
+logging.getLogger().addFilter(filter_athena_messages)
 
 
 def setup_audit_math():
     return os.environ.get("ARLO_ALGORITHM", "athena")
 
+
 ALGORITHM = setup_audit_math()
-logging.warning(f'Arlo using auditing algorithm {ALGORITHM}')
+logging.warning(f"Arlo using auditing algorithm {ALGORITHM}")
 
 
 DEFAULT_DATABASE_URL = "postgres://postgres@localhost:5432/arlo"

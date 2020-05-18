@@ -149,7 +149,7 @@ def check_round(election, jurisdiction_id, round_id):
     )
 
     round.ended_at = datetime.datetime.utcnow()
-    # TODO this is a hack, should we report pairwise p-values?
+    # TODO this is a hack, should we report pairwise p-values?  Yes, along with e.g. Athena delta check.... [nealmcb]
     round_contest.end_p_value = max(risk.values())
     round_contest.is_complete = is_complete
 
