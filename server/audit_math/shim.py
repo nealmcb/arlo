@@ -10,8 +10,7 @@ Or is it better to make them up for each pairwise estimate as we go?
 
 import logging
 import math
-from .audit import Audit
-
+from athena.audit import Audit
 
 def get_athena_test_statistics(
     risk_limit: float, p_w: float, p_r: float, sample_w: int, sample_r: int,
@@ -61,7 +60,7 @@ def get_athena_test_statistics(
         "delta": 1.0,
         "candidates": ["A", "B"],
         "results": [a, b],
-        "ballots_cast": ballots_cast,
+        "total_ballots": ballots_cast,
         "winners": 1,
         "name": "pure_pair",
         "model": "bin",
@@ -133,7 +132,7 @@ def athena_sample_sizes(
         "delta": 1.0,
         "candidates": ["A", "B"],
         "results": [a, b],
-        "ballots_cast": ballots_cast,
+        "total_ballots": ballots_cast,
         "winners": 1,
         "name": "pure_pair",
         "model": "bin",
@@ -160,3 +159,8 @@ def athena_sample_sizes(
     )
 
     return size_adj
+
+
+if __name__ == '__main__':
+     import doctest
+     doctest.testmod(verbose=True)

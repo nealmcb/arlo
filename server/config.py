@@ -141,3 +141,11 @@ def read_jurisdictionadmin_auth0_creds() -> Tuple[str, str, str]:
     JURISDICTIONADMIN_AUTH0_CLIENT_ID,
     JURISDICTIONADMIN_AUTH0_CLIENT_SECRET,
 ) = read_jurisdictionadmin_auth0_creds()
+
+
+def setup_audit_math():
+    return os.environ.get("ARLO_ALGORITHM", "athena")
+
+
+ALGORITHM = setup_audit_math()
+logging.warning(f"Arlo using auditing algorithm {ALGORITHM}")

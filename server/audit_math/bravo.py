@@ -12,6 +12,9 @@ from typing_extensions import Literal, TypedDict
 from scipy import stats
 
 from .sampler_contest import Contest
+from .shim import athena_sample_sizes, get_athena_test_statistics  # type: ignore
+
+from config import ALGORITHM
 
 
 def get_expected_sample_sizes(
@@ -103,6 +106,29 @@ def get_test_statistics(
         for winner in winners:
             T[(winner, "")] = 1.0
 
+    # import pdb; pdb.set_trace()  # not in flask?  https://stackoverflow.com/questions/34914704/bdbquit-raised-when-debugging-python
+
+    if ALGORITHM == "athena":
+        for winner, winner_res in winners.items():
+            for loser, loser_res in losers.items():
+                res = get_athena_test_statistics(
+                    0.1,
+                    winner_res["p_w"],
+                    loser_res["p_l"],
+                    sample_results[winner],
+                    sample_results[loser],
+                )
+                logging.debug(
+                    f"test_stats {res} for: {(winner_res['p_w'], loser_res['p_l'], sample_results[winner], sample_results[loser])})"
+                )
+                print(
+                    f"test_stats {res} {(winner, loser, winner_res['p_w'], loser_res['p_l'], sample_results[winner], sample_results[loser])}"
+                )
+                T[(winner, loser)] = 1.0 if res is None else 1.0 / res["risk"]
+
+        return T
+
+    # else.....
     for cand, votes in sample_results.items():
         if cand in winners:
             for loser in losers:
@@ -420,4 +446,10 @@ def compute_risk(
         measurements[pair] = 1 / T[pair]
         if measurements[pair] > risk_limit:
             finished = False
+    logging.debug(f"samples {sample_results}, measurements {measurements}")
     return measurements, finished
+
+
+# Quick-and-dirty way to switch between auditing algorithms: override the function
+if ALGORITHM == "athena":
+    bravo_sample_sizes = athena_sample_sizes
