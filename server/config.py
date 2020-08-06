@@ -1,4 +1,5 @@
 import os
+import logging
 from typing import Tuple
 
 ###
@@ -144,7 +145,7 @@ def read_jurisdictionadmin_auth0_creds() -> Tuple[str, str, str]:
 
 
 def setup_audit_math():
-    return os.environ.get("ARLO_ALGORITHM", "athena")
+    return os.environ.get("ARLO_ALGORITHM", "minerva")
 
 
 ALGORITHM = setup_audit_math()
