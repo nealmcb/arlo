@@ -20,7 +20,7 @@ Concrete improvements — ordered by priority — are described at the end of th
 - **Jurisdictions file** (`GET /election/<id>/jurisdictions/file`) — the list of participating counties/jurisdictions
 - **Standardized contests file** (`GET /election/<id>/standardized-contests/file`) — the set of contests to be audited
 - **Ballot manifest per jurisdiction** (`GET /election/<id>/jurisdiction/<id>/ballot-manifest/csv`) — batch/tabulator structure and ballot counts
-- **CVR file per jurisdiction** (`GET /election/<id>/jurisdiction/<id>/cvrs/csv`) — the cast vote record for every ballot, with imprinted IDs. Note that many jurisdictions are required to redact CVRs before publication to prevent vote revelation from rare ballot styles (see [Stark et al., 2025](https://www.science.org/doi/10.1126/sciadv.adt1512)); Arlo's CVR export does not currently apply any redaction.
+- **CVR file per jurisdiction** (`GET /election/<id>/jurisdiction/<id>/cvrs/csv`) — the cast vote record for every ballot, with imprinted IDs. Note that many jurisdictions are required to redact CVRs before publication to prevent vote revelation from rare ballot styles (see [Kuriwaki et al., 2025](https://www.science.org/doi/10.1126/sciadv.adt1512)); Arlo's CVR export does not currently apply any redaction.
 
 **For batch comparison audits**, additionally:
 - **Batch tallies per jurisdiction** (`GET /election/<id>/jurisdiction/<id>/batch-tallies/csv`) — reported vote counts per batch
