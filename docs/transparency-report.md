@@ -20,7 +20,7 @@ Concrete improvements — ordered by priority — are described at the end of th
 - **Jurisdictions file** (`GET /election/<id>/jurisdictions/file`) — the list of participating counties/jurisdictions
 - **Standardized contests file** (`GET /election/<id>/standardized-contests/file`) — the set of contests to be audited
 - **Ballot manifest per jurisdiction** (`GET /election/<id>/jurisdiction/<id>/ballot-manifest/csv`) — batch/tabulator structure and ballot counts
-- **CVR file per jurisdiction** (`GET /election/<id>/jurisdiction/<id>/cvrs/csv`) — the cast vote record for every ballot, with imprinted IDs. Note that many jurisdictions are required to redact CVRs before publication to prevent vote revelation from rare ballot styles (see [Bernhard et al., 2025](https://www.science.org/doi/10.1126/sciadv.adt1512)); Arlo's CVR export does not currently apply any redaction.
+- **CVR file per jurisdiction** (`GET /election/<id>/jurisdiction/<id>/cvrs/csv`) — the cast vote record for every ballot, with imprinted IDs. Note that many jurisdictions are required to redact CVRs before publication to prevent vote revelation from rare ballot styles (see [Stark et al., 2025](https://www.science.org/doi/10.1126/sciadv.adt1512)); Arlo's CVR export does not currently apply any redaction.
 
 **For batch comparison audits**, additionally:
 - **Batch tallies per jurisdiction** (`GET /election/<id>/jurisdiction/<id>/batch-tallies/csv`) — reported vote counts per batch
@@ -31,19 +31,19 @@ Concrete improvements — ordered by priority — are described at the end of th
 
 ### Gaps
 
-- **No equivalent bundle for CVR files** in ballot comparison audits — the most critical input for ballot comparison audits lacks the batch-bundle treatment given to batch comparison manifests.
-- **No per-jurisdiction ZIP for each phase** — most observation happens at the county level. Providing a per-jurisdiction ZIP (manifest + CVR + settings) at each stage (pre-seed, pre-round, final) would be more practical than a single ZIP of all CVRs, which is rarely needed and can be unwieldy.
+- **No per-jurisdiction export of new data for each phase** — most observation happens at the county level. Each phase (pre-seed, pre-round, final) should produce a per-jurisdiction export of the data *new to that phase* (e.g., manifests and redacted CVRs pre-seed; retrieval lists pre-round; interpretations post-audit). There is no need to re-bundle unchanged data such as CVRs in every phase export.
 - **No CVR redaction on export** — Arlo exports the full CVR without redaction. Jurisdictions that are required to redact rare-style ballots must do so manually before publication.
-- **No single "pre-seed inputs" bundle** that captures all inputs (contests, settings, manifests, CVRs) in one timestamped artifact.
-- **No formal "checkpoint" or UI gate** that enforces exporting and acknowledging inputs before the seed is entered.
+- **No single "pre-seed inputs" bundle** — the canonical pre-seed artifact that officials should sign and publish is a JSON file containing hashes of all uploaded input files (manifests, redacted CVRs, settings) with pointers to where the files are published. Observers verify files by checking the hashes themselves; the JSON artifact is what officials timestamp and sign.
+- **No UI guidance for transparency best practices** — Arlo does not yet steer jurisdictions through the workflow of exporting, hashing, publishing, and timestamping each phase's artifacts before proceeding to the next.
+- **No formal "checkpoint" or UI gate** that enforces publishing and timestamping hashed inputs before the seed is entered.
 - **No Arlo-managed signing workflow** — sign-off tracking in `BatchInventoryData` stores a `signed_off_at` timestamp and `sign_off_user_id`, but this is an internal status flag, not a cryptographic signature or exported signed artifact.
 
 ### Guide: What to Do Today (Pre-Seed)
 
 1. Once all jurisdictions have uploaded their manifests, CVRs (for ballot comparison), and batch tallies (for batch comparison), download them via the API — jurisdiction by jurisdiction, since observation happens primarily at the local (county) level. For batch comparison, use the manifests-bundle and candidate-totals-bundle endpoints to get the SHA-256-hashed ZIP bundles.
-2. For ballot comparison audits, download each jurisdiction's CVR file. If your jurisdiction is required to redact CVRs before publication, apply the required redaction at this step. Compute a SHA-256 hash of each jurisdiction's CVR, manifest, and settings.
+2. For ballot comparison audits, download each jurisdiction's CVR file. Apply any redaction required by your jurisdiction to protect rare-style ballot privacy before publication (Arlo does not apply redaction automatically). Compute a SHA-256 hash of each jurisdiction's redacted CVR, manifest, and settings.
 3. Export the contest settings and standardized contests file.
-4. For each jurisdiction, assemble a per-jurisdiction ZIP of (manifest, CVR, relevant settings), compute a combined SHA-256 hash, and have the responsible official sign the hash (e.g., with PGP or a digital certificate). Publish these per-jurisdiction ZIPs to your public website or repository before entering the random seed.
+4. For each jurisdiction, assemble a per-jurisdiction pre-seed export of the *new* data for this phase (manifest, redacted CVR, relevant contest settings). Compute a SHA-256 hash of each file. Create a JSON index file recording the hashes and pointers to where each file will be published; have the responsible official sign this JSON index (e.g., with PGP or a digital certificate). Publish the data files and signed JSON index to your public website or repository before entering the random seed.
 5. Record the exact timestamp of the public publication.
 
 ---
@@ -114,12 +114,13 @@ For batch comparison (MACRO), the same is true with batch tallies instead of CVR
 
 #### Sampling universe for each contest
 
-An important detail for independent risk computation is knowing the *sampling universe* for each contest — the set of ballots (or batches) that were eligible to be sampled for it:
+An important detail for independent risk computation is knowing the *sampling universe* for each contest — the set of ballots (or batches) that were eligible to be sampled for it. This depends on the sampling approach used:
 
 - For **targeted contests**, the universe is all ballots (or batches) in the contest's participating jurisdictions — those listed in the standardized contests file for that contest. The manifest for each jurisdiction defines how many ballots exist; the combined total is the denominator used in the risk calculation.
-- For **opportunistic contests**, the universe is the set of ballots in the contest's participating jurisdictions that *happened to be sampled* because they were drawn for a targeted contest. Arlo internally computes this as the set of `SampledBallot`s in any jurisdiction participating in the opportunistic contest. The size of this universe determines whether the opportunistic contest achieves a meaningful risk level. This universe size is not currently exported as a standalone number.
+- For **uniform sampling across jurisdictions**, the universe for any contest (targeted or opportunistic) is defined by the jurisdictions the contest appears in. Risk statistics may require calculating the *minimum uniform sampling rate* across those jurisdictions and discarding extra samples from jurisdictions sampled at a higher rate for other contests — only samples at or below that minimum rate are relevant to the risk calculation.
+- For **style-based sampling**, the universe for a contest is the set of ballots the contest appears on (determined from the CVR's ballot style data). This is a subset of all ballots in the contest's jurisdictions, and the risk calculation uses the ballot-style universe rather than the full jurisdiction ballot count.
 
-For each contest, the participating jurisdictions are defined by the contest's entries in the standardized contests file, which is downloadable in Stage 1.
+The size of the sampling universe and how it was constructed are critical inputs for verifying risk levels for all contests — targeted and opportunistic alike. For each contest, the participating jurisdictions are defined by the contest's entries in the standardized contests file, which is downloadable in Stage 1.
 
 #### How `sampled_ballot_interpretations_to_cvrs` works
 
@@ -131,10 +132,10 @@ The audit report's "CVR Result" and "Audit Result" columns encode this same info
 
 ### Gaps
 
-- **Opportunistic contests: risk levels not computed or reported**: The audit report lists the CVR and audit results for opportunistic contests in sampled ballot rows, but Arlo does not compute or export a risk level (p-value) for them. To assess the risk achieved for an opportunistic contest, an observer must manually extract the relevant ballot rows, determine the sampling universe (see above), and run the risk computation independently.
-- **Sampling universe not explicitly exported**: The number of ballots in each contest's sampling universe — needed to compute risk for both targeted and opportunistic contests — must currently be derived by the observer from the manifest files and contest-jurisdiction assignments, rather than being included directly in the audit report.
+- **Opportunistic contests: risk levels not computed or reported**: The audit report lists the CVR and audit results for opportunistic contests in sampled ballot rows, but Arlo does not compute or export a risk level (p-value) for them. If no data is reported for a contest, the risk level is formally 100%.
+- **Sampling universe not explicitly exported**: The composition and size of each contest's sampling universe — including universe type (uniform jurisdiction-based vs. style-based), the minimum uniform sampling rate across relevant jurisdictions, and the set of samples included in the risk calculation — must currently be derived manually. These are not included in the audit report but are required to independently verify risk levels.
 - **No p-value history for intermediate rounds**: The report shows the final p-value per round, but if the audit ran multiple rounds, the progression of risk reduction is not shown in a way that is easy to extract.
-- **No machine-readable structured export**: The audit report is CSV, which is good, but it mixes section headers and data rows in a way that makes programmatic parsing non-trivial.
+- **Audit report not in a proper machine-readable format**: The current "CSV" export mixes section headers and data rows, making it unsuitable for programmatic parsing. It should be offered in both HTML and structured JSON formats, with hashed references to the underlying CVR files for end-to-end traceability.
 - **No self-contained reproducibility bundle**: There is no single export that bundles (a) the audit inputs, (b) the sample, (c) the interpretations, and (d) the risk computation result with enough metadata for a third party to run the risk computation independently without any Arlo access.
 - **The "change in margin" column for ballot comparison shows the discrepancy category** (`counted_as`) not the raw vote delta: The values are −2, −1, 0, +1, +2 (supersimple categories), which is the right input for the risk formula, but an observer unfamiliar with the supersimple algorithm may not understand how to use these to reproduce the p-value.
 
@@ -144,7 +145,7 @@ The audit report's "CVR Result" and "Audit Result" columns encode this same info
 2. Verify the p-values using the `supersimple.py` or `macro.py` algorithms. The report contains all the inputs: contest totals, sample size, discrepancy counts (change in margin values: −2 to +2).
 3. For ballot comparison: cross-reference the "CVR Result" and "Audit Result" columns for each ballot with the original CVR files (published in Stage 1) to independently verify that the reported CVR interpretations match the CVR files.
 4. For opportunistic contests: Arlo does not currently compute or export their risk levels. To compute them manually: identify all sampled ballots in jurisdictions participating in the opportunistic contest (from the audit report), determine the total ballot universe for that contest (from the manifests published in Stage 1 filtered to the contest's jurisdictions), look up CVR and audit interpretations, and run `supersimple.compute_risk` independently.
-5. Publish per-jurisdiction ZIPs: for each jurisdiction, bundle the (manifest, CVR, retrieval list, audit interpretations from the report) and publish them. Together with the pre-seed Stage 1 bundle and the random seed, these form a complete, reproducible audit record.
+5. Publish per-jurisdiction post-audit exports: for each jurisdiction, bundle the *new* data for this phase (retrieval list, audit interpretations from the report) and publish them. Together with the pre-seed Stage 1 signed hash index and the random seed, these form a complete, reproducible audit record.
 
 ---
 
@@ -154,21 +155,21 @@ The following recommendations are ordered roughly by impact and implementation c
 
 ### High Priority
 
-1. **Add per-jurisdiction ZIP exports at each phase** — a convenience endpoint that assembles a per-jurisdiction ZIP of (manifest + CVR + relevant settings) at pre-seed, pre-round, and post-audit stages, with SHA-256 hashes for each file. This matches how observation actually works (at the county level) and gives officials a ready-to-sign artifact for each phase without requiring scripting.
+1. **Guide jurisdictions through transparency and reproducibility best practices in the UI** — Arlo should steer officials through the workflow of exporting, hashing, signing, publishing, and timestamping each phase's artifacts before proceeding to the next step. This is the single highest-leverage improvement: all data already exists, but no guided path exists to get it into the public record correctly.
 
-2. **Add a ballot comparison CVR bundle endpoint with redaction support** (analogous to the existing `batch-files/manifests-bundle` and `batch-files/candidate-totals-bundle`). It should bundle all jurisdiction CVR files into a single ZIP with SHA-256 hashes, and optionally apply the redaction required by jurisdictions that must protect rare-style ballot privacy ([Bernhard et al., 2025](https://www.science.org/doi/10.1126/sciadv.adt1512)).
+2. **Compute and report risk levels for every contest in the audit report**, including opportunistic contests. If no audit data is available for a contest (e.g., it received no sampled ballots), the report should explicitly note that the risk level is formally 100% — meaning the audit provides no assurance for that contest without additional audits or a recount. Export the intermediate numbers needed to reproduce each risk calculation: universe composition and size, universe type (uniform jurisdiction-based vs. style-based), minimum uniform sampling rate across the universe jurisdictions, and the list of samples included in the risk computation.
 
-3. **Compute and export the sampling universe size for every contest** in the audit report — for both targeted and opportunistic contests. This is the denominator for the risk calculation and is the key piece of information needed to independently verify risk levels for opportunistic contests.
+3. **Integrate pre-seed publication and verifiable timestamping as a gate before seed generation** — the UI should require officials to confirm that the pre-seed data has been exported, hashed, and published (with a timestamp) before the seed entry step is unlocked. The canonical pre-seed artifact is a signed JSON file containing hashes of all input files (manifests, redacted CVRs, settings) and pointers to where the files are published; observers verify files themselves by checking the hashes.
 
-4. **Compute and report risk levels for opportunistic contests** in the audit report. Once the sampling universe is exported (recommendation 3), computing the p-value for opportunistic contests requires the same `supersimple.compute_risk` call already used for targeted contests, but restricted to ballots in the opportunistic contest's jurisdictions.
+4. **Provide the audit report in proper machine-readable formats** — the current "CSV" export mixes section headers and data rows and is not a valid CSV suitable for automated processing. The report should be offered in both HTML and structured JSON formats, with hashed references to the family of per-jurisdiction CVR files bundled for transport. JSON is the canonical format for programmatic reproducibility; HTML is the canonical format for human-readable publication.
+
+5. **Add per-jurisdiction phase exports** — at each phase (pre-seed, pre-round, post-audit) provide a convenience export for each jurisdiction containing *only the new data for that phase*: manifests and redacted CVRs pre-seed; retrieval lists pre-round; interpretations post-audit. There is no need to re-bundle data already published in earlier phases.
 
 ### Medium Priority
 
-5. **Add a "pre-seed audit inputs" export** (`GET /election/<id>/pre-seed-bundle`) that produces a structured JSON or ZIP containing: contest settings, risk limit, jurisdictions list, and hashes of all uploaded manifest and CVR files. This would be the canonical artifact for officials to sign and publish before the seed is entered.
+6. **Add a "pre-seed audit inputs" hash index** (`GET /election/<id>/pre-seed-inputs-index`) that produces a structured JSON containing: contest settings, risk limit, jurisdictions list, and SHA-256 hashes of all uploaded manifest and redacted CVR files, with pointers to their published locations. This is the artifact for officials to sign and publish as the pre-seed commitment.
 
-6. **Surface the sampler inputs as a published artifact**: After the sample is drawn, export a structured file containing the seed, the manifest hash, the CVR hash (for ballot comparison), and the `consistent_sampler` version used, so observers can call `consistent_sampler` directly to verify the sample draw.
-
-7. **Add a structured (JSON) version of the audit report** alongside the current CSV, with clearly separated sections for easy programmatic parsing and independent risk computation, including explicit sampling universe sizes and opportunistic contest risk levels.
+7. **Surface the sampler inputs as a published artifact**: After the sample is drawn, export a structured file containing the seed, the manifest hashes, the CVR hashes (for ballot comparison), and the `consistent_sampler` version used, so observers can call `consistent_sampler` directly to verify the sample draw.
 
 8. **Add a "reproducibility bundle"** post-audit that packages the audit report, the algorithm name and version, and a README explaining exactly how to reproduce the risk calculation (what inputs go into `supersimple.compute_risk` or `macro.compute_risk`, how to parse the relevant columns from the audit report, and which open-source code to use).
 
@@ -176,7 +177,7 @@ The following recommendations are ordered roughly by impact and implementation c
 
 9. **Document the `CARD_STYLE_DATA` audit math type for public observers** — Arlo supports a card-style-data variant of ballot comparison that uses ballot style information from the CVR to compute contest-specific expected error rates (reducing sample sizes for contests that appear on only a subset of ballot styles). Currently this math type and its transparency implications are not documented for observers who need to replicate the risk computation.
 
-10. **Integrate timestamp-authority support**: Allow officials to submit a hash of the pre-seed inputs bundle to a public timestamp service (e.g., RFC 3161) and record the receipt in Arlo's database. This provides verifiable proof of when the data was committed.
+10. **Integrate timestamp-authority support**: Allow officials to submit a hash of the pre-seed inputs index to a public timestamp service (e.g., RFC 3161) and record the receipt in Arlo's database. This provides verifiable proof of when the data was committed.
 
 11. **Make the "change in margin" column in the audit report more transparent**: Add a companion column that explains the discrepancy in plain language (e.g., "2-vote overstatement") so that observers unfamiliar with the supersimple algorithm can understand the data.
 
@@ -188,14 +189,14 @@ The following recommendations are ordered roughly by impact and implementation c
 
 | Transparency Need | Arlo Today | Gap / Note |
 |---|---|---|
-| Export all input data (manifests) | ✅ Per-jurisdiction CSV + bundle w/ SHA-256 (batch comparison) | ❌ No CVR bundle for ballot comparison |
-| Export all input data (CVRs) | ✅ Per-jurisdiction CSV, all phases | ❌ No bundle/hash; no built-in redaction for rare-style privacy |
-| Pre-seed signature artifact | ⚠️ All raw data is exportable | ❌ No structured per-jurisdiction ZIP or hash manifest; no sign-off gate |
+| Export all input data (manifests) | ✅ Per-jurisdiction CSV + bundle w/ SHA-256 (batch comparison) | ⚠️ Per-jurisdiction CSV for ballot comparison; no hash bundle |
+| Export all input data (redacted CVRs) | ✅ Per-jurisdiction CSV exportable | ❌ No built-in redaction for rare-style privacy; no SHA-256 hash index |
+| Pre-seed signature artifact | ⚠️ All raw data is exportable | ❌ No structured hash-index JSON; no UI gate before seed entry |
 | Post-seed: sample selection list | ✅ Per-jurisdiction retrieval list w/ imprinted ID | ❌ No combined list; observer CVR join must happen outside Arlo |
 | Random seed availability | ✅ Available via settings endpoint and in audit report | ❌ No structured sampler-inputs bundle (seed + hashes) for independent verification |
-| Post-audit: discrepancy/comparison export | ✅ Audit report + discrepancy report CSV | ❌ No structured JSON; sampling universe not explicit |
-| Sampling universe per contest | ⚠️ Derivable from manifest + standardized contests file | ❌ Not exported as an explicit number in the audit report |
-| Risk level for opportunistic contests | ❌ Not computed or exported | ❌ Significant gap; universe and p-value must be computed manually |
+| Post-audit: discrepancy/comparison export | ✅ Audit report + discrepancy report | ❌ Not proper CSV/JSON; sampling universe not explicit; no HTML version |
+| Sampling universe per contest | ⚠️ Derivable from manifest + standardized contests file | ❌ Universe type, minimum sampling rate, and included samples not exported |
+| Risk level for opportunistic contests | ❌ Not computed or exported | ❌ Significant gap; universe and p-value must be computed manually; 100% risk not noted |
 | CARD_STYLE_DATA (style-based selection) | ✅ Implemented in codebase | ❌ Not documented for observers; transparency implications unstated |
 | Reproducibility documentation | ❌ Not provided as a bundle | ❌ Algorithm is open-source; no guided README or bundle |
 | Public transparency endpoint | N/A — Arlo runs on a firewalled internal network | Officials export and publish data externally; no public endpoint needed or appropriate |
